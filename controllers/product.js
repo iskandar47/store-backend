@@ -1,76 +1,57 @@
 const Product = require('../models/product')
+const asyncWrapper = require('../middleware/async-wrapper')
+const { creatCustomError } = require('../errors/custom-error')
+const getAllProducts = asyncWrapper(async (req, res) => {
+  const products = await Product.find({})
+  res.status(200).json({ products })
+})
 
-const getAllProducts = async (req, res) => {
-  try {
-    const products = await Product.find({})
-    res.status(200).json({ products })
-  } catch (error) {
-    res.status(500).json({ msg: error })
+const getProduct = asyncWrapper(async (req, res, next) => {
+  const { id: productID } = req.params
+  const product = await Product.findOne({ _id: productID })
+  if (!product) {
+    return next(creatCustomError(`cant find product with id ${productID}`, 404))
   }
-}
+  res.status(200).json({ product })
+})
 
-const getProduct = async (req, res) => {
-  try {
-    const { id: productID } = req.params
-    const product = await Product.findOne({ _id: productID })
-    if (!product) {
-      return res
-        .status(404)
-        .json({ msg: `cant find product with id ${productID}` })
-    }
-    res.status(200).json({ product })
-  } catch (error) {
-    res.status(500).json({ msg: error })
-  }
-}
+const addProduct = asyncWrapper(async (req, res) => {
+  const product = await Product.create(req.body)
+  res.status(200).json({ product })
+})
 
-const addProduct = async (req, res) => {
-  try {
-    const product = await Product.create(req.body)
-    res.status(200).json({ product })
-  } catch (error) {
-    res.status(500).json({ msg: error })
-  }
-}
-
-const deleteProduct = async (req, res) => {
-  try {
-    const { id: productID } = req.params
-    const product = await Product.findByIdAndDelete({ _id: productID })
-    if (!product) {
-      res.status(404).json({ msg: `can't find product with id ${productID}` })
-    }
-    res
-      .status(200)
-      .json({ msg: `product with id: ${productID} successfuly deleted` })
-  } catch (error) {
-    res.status(500).json({ msg: error })
-  }
-}
-
-const updateProduct = async (req, res) => {
-  try {
-    const { id: productID } = req.params
-    const product = await Product.findByIdAndUpdate(
-      { _id: productID },
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      },
+const deleteProduct = asyncWrapper(async (req, res, next) => {
+  const { id: productID } = req.params
+  const product = await Product.findByIdAndDelete({ _id: productID })
+  if (!product) {
+    return next(
+      creatCustomError(`can't find product with id ${productID}`, 404),
     )
-
-    if (!product) {
-      res
-        .status(404)
-        .json({ msg: `can't find product with the id: ${productID}` })
-    }
-
-    res.status(200).json({ product })
-  } catch (error) {
-    res.status(500).json({ msg: error })
   }
-}
+  res
+    .status(200)
+    .json({ msg: `product with id: ${productID} successfuly deleted` })
+})
+
+const updateProduct = asyncWrapper(async (req, res, next) => {
+  const { id: productID } = req.params
+  const product = await Product.findByIdAndUpdate(
+    { _id: productID },
+    req.body,
+    {
+      new: true,
+      runValidators: true,
+    },
+  )
+
+  if (!product) {
+    return next(
+      creatCustomError(`can't find product with the id: ${productID}`, 404),
+    )
+  }
+
+  res.status(200).json({ product })
+})
 
 module.exports = {
   getAllProducts,
